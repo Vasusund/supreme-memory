@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HD To-Do Dashboard</title>
+<style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    header { background: #2575fc; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { margin: 0; font-size: 24px; }
+    header a { color: white; text-decoration: none; font-weight: bold; padding: 8px 12px; background: #6a11cb; border-radius: 6px; transition: background 0.3s ease; }
+    header a:hover { background: #2575fc; }
+    .container { max-width: 700px; margin: 30px auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 5px 15px rgba(0,0,0,0.1); }
+    form input, form select, form button { padding: 10px; margin: 5px 0; font-size: 16px; }
+    form input, form select { width: 70%; }
+    form button { width: 25%; background: #2575fc; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background 0.3s ease; }
+    form button:hover { background: #6a11cb; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    table th, table td { padding: 12px; border-bottom: 1px solid #ccc; text-align: left; }
+    table tr.completed td { text-decoration: line-through; color: gray; }
+    .priority-low { color: green; font-weight: bold; }
+    .priority-medium { color: orange; font-weight: bold; }
+    .priority-high { color: red; font-weight: bold; }
+    button.action-btn { padding: 5px 8px; border-radius: 5px; border: none; cursor: pointer; margin-right: 5px; }
+    button.complete-btn { background: green; color: white; }
+    button.delete-btn { background: red; color: white; }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>HD To-Do Dashboard</h1>
+    <a href="{{ url_for('logout') }}">Logout</a>
+</header>
+
+<div class="container">
+    <form id="addTaskForm">
+        <input type="text" id="taskTitle" placeholder="Task title" required>
+        <select id="taskPriority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+        </select>
+        <button type="submit">Add Task</button>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Priority</th>
+                <th>Completed</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="taskList">
+            {% for task in tasks %}
+            <tr data-id="{{ task.id }}" class="{{ 'completed' if task.completed else '' }}">
+                <td>{{ task.title }}</td>
+                <td class="priority-{{ task.priority }}">{{ task.priority }}</td>
+                <td>{{ 'Yes' if task.completed else 'No' }}</td>
+                <td>
+                    {% if not task.completed %}
+                    <button class="action-btn complete-btn">Complete</button>
+                    {% endif %}
+                    <button class="action-btn delete-btn">Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+async function fetchTasks() {
+    const res = await fetch("/tasks", { credentials: "same-origin" });
+    const data = await res.json();
+    const tbody = document.getElementById("taskList");
+    tbody.innerHTML = "";
+    data.forEach(task => {
+        const tr = document.createElement("tr");
+        tr.dataset.id = task.id;
+        if (task.completed) tr.classList.add("completed");
+
+        tr.innerHTML = `
+            <td>${task.title}</td>
+            <td class="priority-${task.priority}">${task.priority}</td>
+            <td>${task.completed ? "Yes" : "No"}</td>
+            <td>
+                ${task.completed ? "" : `<button class="action-btn complete-btn">Complete</button>`}
+                <button class="action-btn delete-btn">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+document.getElementById("addTaskForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const title = document.getElementById("taskTitle").value;
+    const priority = document.getElementById("taskPriority").value;
+    await fetch("/tasks", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({title, priority}),
+        credentials: "same-origin"
+    });
+    document.getElementById("taskTitle").value = "";
+    fetchTasks();
+});
+
+document.getElementById("taskList").addEventListener("click", async e => {
+    const tr = e.target.closest("tr");
+    const taskId = tr.dataset.id;
+    if (e.target.classList.contains("complete-btn")) {
+        await fetch(`/tasks/${taskId}`, {
+            method: "PATCH",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({completed: true}),
+            credentials: "same-origin"
+        });
+        fetchTasks();
+    } else if (e.target.classList.contains("delete-btn")) {
+        await fetch(`/tasks/${taskId}`, { method: "DELETE", credentials: "same-origin" });
+        fetchTasks();
+    }
+});
+
+fetchTasks();
+</script>
+
+</body>
+</html>

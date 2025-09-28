@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HD To-Do App - Login</title>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #6a11cb, #2575fc);
+    }
+
+    .login-card {
+        background: white;
+        padding: 40px 50px;
+        border-radius: 12px;
+        box-shadow: 0px 10px 25px rgba(0,0,0,0.2);
+        width: 350px;
+        text-align: center;
+    }
+
+    .login-card h2 { margin-bottom: 30px; color: #333; }
+    input[type="text"] { width: 100%; padding: 12px 15px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
+    input[type="text"]:focus { border-color: #2575fc; box-shadow: 0px 0px 5px rgba(37, 117, 252, 0.5); outline: none; }
+    button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #2575fc; color: white; font-size: 16px; cursor: pointer; transition: background 0.3s ease; }
+    button:hover { background: #6a11cb; }
+    .footer-text { margin-top: 15px; font-size: 12px; color: #555; }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+    <h2>HD To-Do App</h2>
+    <form id="loginForm">
+        <input type="text" id="username" placeholder="Enter your username" required>
+        <button type="submit">Login / Create</button>
+    </form>
+    <div class="footer-text">Enter your username to login or create a new account</div>
+</div>
+
+<script>
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = document.getElementById("username").value;
+
+    const res = await fetch("/users", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({username}),
+        credentials: "same-origin"  // important for session cookies
+    });
+    const data = await res.json();
+
+    window.location.href = `/dashboard`;
+});
+</script>
+
+</body>
+</html>
