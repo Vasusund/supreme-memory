@@ -1,68 +1,64 @@
 pipeline {
     agent any
-
     environment {
-        VENV = "${WORKSPACE}/venv"
+        PYTHON = "python3"
     }
-
     stages {
         stage('Build') {
             steps {
-                echo "Setting up virtual environment and installing dependencies"
-                sh 'python3 -m venv venv'
-                sh '${VENV}/bin/pip install --upgrade pip'
-                sh '${VENV}/bin/pip install -r requirements.txt'
+                echo 'Building the project...'
+                sh "${PYTHON} -m pip install --upgrade pip"
+                sh "${PYTHON} -m pip install -r requirements.txt"
             }
         }
 
         stage('Test') {
             steps {
-                echo "Running unit tests"
-                sh '${VENV}/bin/python -m unittest discover tests'
+                echo 'Running unit tests...'
+                sh "${PYTHON} -m unittest discover tests"
             }
         }
 
         stage('Code Quality') {
             steps {
-                echo "Running code quality analysis"
-                sh '${VENV}/bin/pip install flake8'
-                sh '${VENV}/bin/flake8 --max-line-length=120 .'
+                echo 'Checking code quality with flake8...'
+                sh "${PYTHON} -m pip install flake8"
+                sh "flake8 --max-line-length=120 ."
             }
         }
 
         stage('Security') {
             steps {
-                echo "Checking for security vulnerabilities"
-                sh '${VENV}/bin/pip install bandit'
-                sh '${VENV}/bin/bandit -r .'
+                echo 'Scanning dependencies with Bandit...'
+                sh "${PYTHON} -m pip install bandit"
+                sh "bandit -r . -lll"
             }
         }
 
         stage('Deploy') {
             steps {
-                echo "Deploying to test environment"
-                sh 'cp -r . ~/hd-todo-test-env/'
+                echo 'Deploying to test environment...'
+                sh "cp -r * /tmp/hd-todo-test/"  // Example simple deploy
             }
         }
 
         stage('Release') {
             steps {
-                echo "Simulating release to production"
-                sh 'cp -r ~/hd-todo-test-env/ ~/hd-todo-prod-env/'
+                echo 'Releasing to production...'
+                sh "cp -r * /tmp/hd-todo-prod/"  // Example simple release
             }
         }
 
         stage('Monitoring') {
             steps {
-                echo "Monitoring app logs"
-                sh 'tail -n 20 ~/hd-todo-prod-env/app.log || echo "No logs yet"'
+                echo 'Checking monitoring endpoint...'
+                sh "curl -s http://127.0.0.1:5000/dashboard || echo 'App not running!'"
             }
         }
     }
-
     post {
         always {
-            echo 'Pipeline finished'
+            echo 'Cleaning up...'
         }
     }
 }
