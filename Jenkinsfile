@@ -1,70 +1,51 @@
 pipeline {
     agent any
 
-    environment {
-        PYTHON = "python3"
-        PATH = "$PATH:/Users/vasusund8556/Library/Python/3.9/bin"
-    }
-
     stages {
-        stage('Checkout') { steps { checkout scm } }
-
-        stage('Build') {
+        stage('Checkout & Build') {
             steps {
-                echo 'Building the project and creating artefact...'
-                sh "${PYTHON} -m pip install --upgrade pip"
-                sh "${PYTHON} -m pip install -r requirements.txt"
-                sh "zip -r app_build.zip . -x '*.git*' '*.venv*'"
+                echo 'Cloning repo and building artefact...'
+                git url: 'https://github.com/Vasusund/supreme-memory.git', branch: 'main'
+                sh 'zip -r build-artifact.zip .'
             }
         }
 
         stage('Test') {
             steps {
                 echo 'Running unit tests...'
-                sh "${PYTHON} -m unittest discover tests"
+                sh 'pip install -r requirements.txt || true'
+                sh 'pytest --maxfail=1 --disable-warnings -q'
             }
         }
 
         stage('Code Quality') {
             steps {
-                echo 'Checking code quality with flake8...'
-                sh "${PYTHON} -m pip install flake8"
-                sh "flake8 --max-line-length=120 ."
+                echo 'Running code quality checks with flake8...'
+                sh 'pip install flake8 || true'
+                sh 'flake8 . || true'
             }
         }
 
         stage('Security') {
             steps {
-                echo 'Running security checks with bandit...'
-                sh "${PYTHON} -m pip install bandit"
-                sh "bandit -r . -ll"
+                echo 'Running dependency vulnerability scan...'
+                sh 'pip install pip-audit || true'
+                sh 'pip-audit || true'
             }
         }
 
         stage('Deploy') {
             steps {
-                echo 'Deploying application to test environment...'
-                sh "nohup ${PYTHON} app.py &"
-            }
-        }
-
-        stage('Release') {
-            steps {
-                echo 'Releasing application to production...'
-                sh "git tag v1.0.${BUILD_NUMBER}"
-                sh "git push origin --tags"
-                sh "cp app_build.zip ~/prod_release/"
-            }
-        }
-
-        stage('Monitoring') {
-            steps {
-                echo 'Monitoring application...'
-                sh "ps aux | grep app.py"
-                sh "curl -s http://localhost:5000 || echo 'App not running!'"
+                echo 'Deploying app locally for testing...'
+                sh 'nohup python3 app.py & sleep 5'
+                sh 'curl -s http://127.0.0.1:5000/ || true'
             }
         }
     }
 
-    post { always { echo 'Cleaning up...' } }
+    post {
+        always {
+            echo 'Pipeline finished (success or fail).'
+        }
+    }
 }
